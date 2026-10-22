@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kokoro Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#fff; --card:#fff; --ink:#0a0a0a; --muted:#737373; --line:#ececec; --soft:#f6f6f6;
+  --accent:#0a0a0a; --accent-ink:#fff; --ring:rgba(0,0,0,.06);
+  --hover:#ececec; --raise:#fff; --invert:0; color-scheme:light;
+}
+:root[data-theme=dark]{
+  --bg:#0a0a0a; --card:#141414; --ink:#fafafa; --muted:#a3a3a3; --line:#262626; --soft:#171717;
+  --accent:#fafafa; --accent-ink:#0a0a0a; --ring:rgba(255,255,255,.08);
+  --hover:#262626; --raise:#1f1f1f; --invert:1; color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
+.titlebar{height:38px;-webkit-app-region:drag}
+.app{display:grid;grid-template-columns:1fr 320px;gap:20px;height:calc(100% - 38px);padding:0 24px 24px}
+.main{display:flex;flex-direction:column;gap:16px;min-height:0}
+h1{font-size:24px;font-weight:600;letter-spacing:-.025em}
+.brand{display:flex;align-items:center;gap:14px}
+.brand img{width:44px;height:44px;filter:invert(var(--invert))}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.theme{display:flex;background:var(--soft);border-radius:999px;padding:3px;flex:none}
+.theme button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:999px;cursor:pointer}
+.theme button.on{background:var(--raise);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.sub{color:var(--muted);margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.editor{flex:1;display:flex;flex-direction:column;min-height:180px;transition:box-shadow .15s,border-color .15s}
+.editor:focus-within{border-color:var(--muted);box-shadow:0 0 0 4px var(--ring)}
+textarea{flex:1;resize:none;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;line-height:1.65;padding:20px 22px;border-radius:16px}
+textarea::placeholder{color:var(--muted)}
+.foot{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 12px 22px}
+.count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.btn{appearance:none;border:0;cursor:pointer;font:inherit;font-weight:500;border-radius:999px;padding:10px 20px;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;gap:8px;transition:opacity .15s,transform .05s}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:var(--raise);border:1px solid var(--line);color:var(--ink);padding:7px 14px;font-size:13px}
+.prog{height:3px;background:transparent;margin:0 22px;border-radius:3px;overflow:hidden;opacity:0;transition:opacity .2s}
+.busy .prog{opacity:1;background:var(--soft)}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.prog.ind i{width:35%;animation:ind 1.1s ease-in-out infinite}
+@keyframes ind{0%{margin-left:-35%}100%{margin-left:100%}}
+.hint{color:var(--muted);font-size:12px;margin-left:10px}
+.item .acts{display:flex;gap:6px;align-items:center;flex:none}
+.x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;border-radius:8px}
+.x:hover{background:var(--hover);color:var(--ink)}
+.saved{color:var(--muted);font-size:12px}
+.seg{display:flex;background:var(--raise);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:6px 10px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:r .7s linear infinite;display:none}
+.busy .spin{display:inline-block}
+@keyframes r{to{transform:rotate(360deg)}}
+.history{max-height:230px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--muted);text-align:center;padding:18px;font-size:13px}
+.item{display:flex;align-items:center;gap:14px;padding:12px 14px}
+.play{flex:none;width:38px;height:38px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;display:grid;place-items:center}
+.play svg{width:14px;height:14px;fill:currentColor}
+.meta{flex:1;min-width:0}
+.meta b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta span{color:var(--muted);font-size:12px}
+.bar{height:4px;background:var(--soft);border-radius:4px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.side{display:flex;flex-direction:column;gap:26px;padding:22px;overflow:auto;background:var(--soft);border-color:transparent}
+.side h2{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.voices{display:flex;flex-direction:column;gap:4px;max-height:340px;overflow:auto;margin:0 -6px;padding:0 6px}
+.voice{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.voice:hover{background:var(--hover)}
+.voice.sel{border-color:var(--line);background:var(--raise);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.grp{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 10px 4px}
+.orb{width:28px;height:28px;opacity:.9;border-radius:50%;flex:none}
+.voice .n{font-weight:500;text-transform:capitalize}
+.voice .d{color:var(--muted);font-size:12px}
+.row{display:flex;justify-content:space-between;margin-bottom:8px}
+.row output{color:var(--muted);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:4px;background:var(--line);outline:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid var(--card);box-shadow:0 0 0 1px var(--line)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:var(--accent);color:var(--accent-ink);padding:10px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;font-size:13px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:760px){.app{grid-template-columns:1fr;overflow:auto}}
+</style>
+</head>
+<body>
+<div class="titlebar"></div>
+<div class="app">
+  <section class="main">
+    <div class="top"><div class="brand"><img src="assets/mark.svg" alt="Kokoro"><div><h1>Text to Speech</h1><p class="sub">Convert text into lifelike speech with Kokoro-82M, fully on your Mac.</p></div></div>
+      <div class="theme" id="theme"><button data-t="light">Light</button><button data-t="dark">Dark</button></div></div>
+    <div class="card editor" id="editor">
+      <textarea id="text" placeholder="Paste or type your text here…" autofocus></textarea>
+      <div class="prog" id="prog"><i></i></div>
+      <div class="foot">
+        <span class="count" id="count">0 characters</span>
+        <span style="display:flex;align-items:center"><span class="hint" id="hint">⌘↵</span><button class="btn" id="go" style="margin-left:10px"><span class="spin"></span><span id="golbl">Generate speech</span></button></span>
+      </div>
+    </div>
+    <div class="history" id="history"></div>
+  </section>
+
+  <aside class="card side">
+    <div>
+      <h2>Voice</h2>
+      <div class="voices" id="voices"></div>
+    </div>
+    <div>
+      <div class="row"><h2 style="margin:0">Speed</h2><output id="spd">1.00×</output></div>
+      <input type="range" id="speed" min="0.5" max="1.5" step="0.05" value="1">
+    </div>
+    <div id="devbox" style="display:none">
+      <h2>Processing</h2>
+      <div class="seg" id="dev"><button data-d="auto">Fast (GPU)</button><button data-d="cpu">CPU</button></div>
+    </div>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let voices=[],voice='af_heart',busy=false,audio=null,playingBtn=null,playingId=null;
+const cache={};
+const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>',PAUSE='<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+const api=()=>pywebview.api;
+
+function orb(name){let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))%360;
+  return `linear-gradient(135deg,hsl(${h} 85% 68%),hsl(${(h+60)%360} 80% 55%))`}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderVoices(){
+  let last='';
+  $('voices').innerHTML=voices.map(v=>{
+    const head=v.accent!==last?`<div class="grp">${v.accent}</div>`:'';last=v.accent;
+    return head+`<div class="voice ${v.id===voice?'sel':''}" data-id="${v.id}">
+    <div class="orb" style="background:${orb(v.id)}"></div>
+    <div><div class="n">${v.name}</div><div class="d">${v.gender}</div></div></div>`}).join('');
+  document.querySelectorAll('.voice').forEach(e=>e.onclick=()=>{voice=e.dataset.id;renderVoices();api().set_pref('voice',voice)});
+}
+$('text').oninput=()=>{const n=$('text').value.length;$('count').textContent=n.toLocaleString()+' character'+(n===1?'':'s')};
+$('text').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('go').click()}});
+$('speed').oninput=e=>$('spd').textContent=(+e.target.value).toFixed(2)+'×';
+$('speed').onchange=e=>api().set_pref('speed',+e.target.value);
+document.querySelectorAll('#dev button').forEach(b=>b.onclick=()=>{setDev(b.dataset.d);api().set_pref('device',b.dataset.d)});
+function setDev(d){document.querySelectorAll('#dev button').forEach(b=>b.classList.toggle('on',b.dataset.d===d))}
+
+/* ---- generation */
+function setBusy(on){
+  busy=on;const e=$('editor');e.classList.toggle('busy',on);$('go').classList.toggle('busy',on);
+  $('golbl').textContent=on?'Cancel':'Generate speech';$('hint').style.display=on?'none':'';
+  if(!on){$('prog').classList.remove('ind');$('prog').firstChild.style.width='0';$('count').textContent=cnt()}
+}
+const cnt=()=>{const n=$('text').value.length;return n.toLocaleString()+' character'+(n===1?'':'s')};
+$('go').onclick=async()=>{
+  if(busy){api().cancel();$('golbl').textContent='Cancelling…';return}
+  const text=$('text').value.trim();
+  if(!text)return toast('Paste some text first');
+  setBusy(true);$('count').textContent='Starting…';$('prog').classList.add('ind');
+  const r=await api().generate(text,voice,+$('speed').value);
+  if(r.error){setBusy(false);toast(r.error)}
+};
+window.onStatus=({msg,pct})=>{
+  const p=$('prog');
+  if(pct===null){p.classList.add('ind');$('count').textContent=msg}
+  else{p.classList.remove('ind');p.firstChild.style.width=(pct*100)+'%';$('count').textContent=`${msg} ${Math.round(pct*100)}%`}
+};
+window.onDone=e=>{setBusy(false);addItem(e,true)};
+window.onCancelled=()=>{setBusy(false);toast('Cancelled')};
+window.onError=({msg})=>{setBusy(false);toast('Error: '+msg)};
+
+/* ---- history */
+function fmtTime(ts){return new Date(ts*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function emptyCheck(){const h=$('history');if(!h.children.length)h.innerHTML='<div class="empty">Generated audio will appear here</div>'}
+function addItem(e,autoplay){
+  const h=$('history');if(h.querySelector('.empty'))h.innerHTML='';
+  const el=document.createElement('div');el.className='card item';el.dataset.id=e.id;
+  el.innerHTML=`<button class="play">${PLAY}</button><div class="meta"><b></b><span></span><div class="bar"><i></i></div></div><div class="acts"></div>`;
+  el.querySelector('b').textContent=e.text;
+  el.querySelector('span').textContent=`${e.voice} · ${e.duration.toFixed(1)}s · ${fmtTime(e.ts)}`;
+  const acts=el.querySelector('.acts');
+  function renderActs(){
+    acts.innerHTML=e.saved?`<span class="saved">Saved ✓</span><button class="btn ghost" data-a="reveal">Show in Finder</button>`:`<button class="btn ghost" data-a="save">Save</button>`;
+    acts.insertAdjacentHTML('beforeend','<button class="x" data-a="del" title="Remove">×</button>');
+    acts.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>act(b.dataset.a));
+  }
+  async function act(a){
+    if(a==='reveal')return api().reveal(e.saved);
+    if(a==='del'){if(playingId===e.id&&audio){audio.pause();audio=null}await api().delete(e.id);delete cache[e.id];el.remove();emptyCheck();return}
+    const r=await api().save(e.id);
+    if(r.error)toast(r.error);else if(r.path){e.saved=r.path;renderActs();toast('Saved to '+r.path.split('/').slice(-2).join('/'))}
+  }
+  renderActs();
+  const pb=el.querySelector('.play'),bar=el.querySelector('i');
+  pb.onclick=async()=>{
+    if(audio&&playingBtn===pb){audio.paused?audio.play():audio.pause();return}
+    if(audio){audio.pause();playingBtn.innerHTML=PLAY}
+    cache[e.id]=cache[e.id]||await api().get_audio(e.id);
+    audio=new Audio(cache[e.id]);playingBtn=pb;playingId=e.id;
+    audio.onplay=()=>pb.innerHTML=PAUSE;audio.onpause=()=>pb.innerHTML=PLAY;
+    audio.ontimeupdate=()=>bar.style.width=(audio.currentTime/audio.duration*100)+'%';
+    audio.onended=()=>{pb.innerHTML=PLAY;bar.style.width='0';playingBtn=null;audio=null};
+    audio.play();
+  };
+  autoplay?h.prepend(el):h.append(el);
+  if(autoplay)pb.click();
+}
+
+/* ---- theme + boot */
+function setTheme(t,save){
+  document.documentElement.dataset.theme=t;
+  document.querySelectorAll('#theme button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(save)api().set_pref('theme',t);
+}
+document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>setTheme(b.dataset.t,true));
+setTheme(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+window.addEventListener('pywebviewready',async()=>{
+  const s=await api().state();voices=s.voices;if(s.theme)setTheme(s.theme);
+  voice=s.voice;$('speed').value=s.speed;$('speed').oninput({target:$('speed')});
+  if(s.mps){$('devbox').style.display='';setDev(s.device)}
+  renderVoices();s.history.forEach(e=>addItem(e,false));emptyCheck();
+});
+emptyCheck();
+</script>
+</body>
+</html>

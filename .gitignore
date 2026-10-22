@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+cache/
+history.json
+settings.json
+*.app/
+.DS_Store

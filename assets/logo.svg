@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f3f3f3"/></linearGradient></defs>
+<rect x="3" y="3" width="1018" height="1018" rx="230.4" fill="url(#bg)" stroke="#e5e5e5" stroke-width="6"/>
+<rect x="200.2" y="471.0" width="29.7" height="81.9" rx="14.8" fill="#0a0a0a"/>
+<rect x="259.6" y="425.0" width="29.7" height="174.1" rx="14.8" fill="#0a0a0a"/>
+<rect x="319.0" y="353.3" width="29.7" height="317.4" rx="14.8" fill="#0a0a0a"/>
+<rect x="378.4" y="435.2" width="29.7" height="153.6" rx="14.8" fill="#0a0a0a"/>
+<rect x="437.8" y="291.8" width="29.7" height="440.3" rx="14.8" fill="#0a0a0a"/>
+<rect x="497.2" y="256.0" width="29.7" height="512.0" rx="14.8" fill="#0a0a0a"/>
+<rect x="556.5" y="373.8" width="29.7" height="276.5" rx="14.8" fill="#0a0a0a"/>
+<rect x="615.9" y="322.6" width="29.7" height="378.9" rx="14.8" fill="#0a0a0a"/>
+<rect x="675.3" y="440.3" width="29.7" height="143.4" rx="14.8" fill="#0a0a0a"/>
+<rect x="734.7" y="394.2" width="29.7" height="235.5" rx="14.8" fill="#0a0a0a"/>
+<rect x="794.1" y="471.0" width="29.7" height="81.9" rx="14.8" fill="#0a0a0a"/>
+</svg>
