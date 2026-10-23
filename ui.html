@@ -40,6 +40,13 @@ textarea::placeholder{color:var(--muted)}
 .btn:hover{opacity:.88}.btn:active{transform:scale(.98)}
 .btn:disabled{opacity:.4;cursor:default}
 .btn.ghost{background:var(--raise);border:1px solid var(--line);color:var(--ink);padding:7px 14px;font-size:13px}
+[hidden]{display:none!important}
+.reader{flex:1;overflow:auto;padding:20px 22px;font-size:16px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);cursor:default;user-select:none;-webkit-user-select:none}
+.reader .g.done{color:var(--ink)}
+.reader .w{cursor:pointer;border-radius:5px;padding:1px 0;transition:color .12s,background .12s}
+.reader .w:hover{background:var(--hover)}
+.reader .w.done{color:var(--ink)}
+.reader .w.cur{background:var(--accent);color:var(--accent-ink);box-shadow:-2px 0 0 var(--accent),2px 0 0 var(--accent)}
 .prog{height:3px;background:transparent;margin:0 22px;border-radius:3px;overflow:hidden;opacity:0;transition:opacity .2s}
 .busy .prog{opacity:1;background:var(--soft)}
 .prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
@@ -92,10 +99,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="top"><div class="brand"><img src="assets/mark.svg" alt="Kokoro"><div><h1>Text to Speech</h1><p class="sub">Convert text into lifelike speech with Kokoro-82M, fully on your Mac.</p></div></div>
       <div class="theme" id="theme"><button data-t="light">Light</button><button data-t="dark">Dark</button></div></div>
     <div class="card editor" id="editor">
+      <div class="reader" id="reader" hidden></div>
       <textarea id="text" placeholder="Paste or type your text here…" autofocus></textarea>
       <div class="prog" id="prog"><i></i></div>
       <div class="foot">
-        <span class="count" id="count">0 characters</span>
+        <span style="display:flex;align-items:center;gap:12px"><span class="count" id="count">0 characters</span><button class="btn ghost" id="editbtn" hidden>Edit text</button></span>
         <span style="display:flex;align-items:center"><span class="hint" id="hint">⌘↵</span><button class="btn" id="go" style="margin-left:10px"><span class="spin"></span><span id="golbl">Generate speech</span></button></span>
       </div>
     </div>
@@ -156,6 +164,7 @@ function setBusy(on){
 const cnt=()=>{const n=$('text').value.length;return n.toLocaleString()+' character'+(n===1?'':'s')};
 $('go').onclick=async()=>{
   if(busy){api().cancel();$('golbl').textContent='Cancelling…';return}
+  if(audio&&!audio.paused)audio.pause();closeReader();
   const text=$('text').value.trim();
   if(!text)return toast('Paste some text first');
   setBusy(true);$('count').textContent='Starting…';$('prog').classList.add('ind');
@@ -170,6 +179,51 @@ window.onStatus=({msg,pct})=>{
 window.onDone=e=>{setBusy(false);addItem(e,true)};
 window.onCancelled=()=>{setBusy(false);toast('Cancelled')};
 window.onError=({msg})=>{setBusy(false);toast('Error: '+msg)};
+
+/* ---- read-along highlight */
+let rd=null,tm=0;
+function openReader(e){
+  closeReader(true);
+  const el=$('reader'),text=e.fulltext,ws=e.words;
+  const gaps=[],words=[];let pos=0,html='';
+  const esc2=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  ws.forEach((w,i)=>{
+    const a=Math.max(w[2],pos),b=Math.max(w[3],a);
+    html+=`<span class="g" data-g="${i}">${esc2(text.slice(pos,a))}</span><span class="w" data-w="${i}">${esc2(text.slice(a,b))}</span>`;
+    pos=b;
+  });
+  html+=esc2(text.slice(pos));
+  el.innerHTML=html;
+  el.querySelectorAll('.g').forEach(n=>gaps[+n.dataset.g]=n);
+  el.querySelectorAll('.w').forEach(n=>{words[+n.dataset.w]=n;n.onclick=()=>{
+    if(!audio)return;audio.currentTime=ws[+n.dataset.w][0]+0.01;if(audio.paused)audio.play();sync()}});
+  rd={ws,gaps,words,last:-1};
+  el.hidden=false;el.scrollTop=0;$('text').hidden=true;$('editbtn').hidden=false;
+}
+function closeReader(keepAudio){
+  if(!rd)return;
+  clearInterval(tm);tm=0;rd=null;
+  $('reader').hidden=true;$('reader').innerHTML='';$('text').hidden=false;$('editbtn').hidden=true;
+}
+function setCur(i){
+  if(!rd||i===rd.last)return;
+  const {words,gaps,last}=rd;
+  if(last>=0&&words[last])words[last].classList.remove('cur');
+  if(i>last){for(let k=last+1;k<=i;k++){words[k].classList.add('done');gaps[k].classList.add('done')}}
+  else{for(let k=last;k>i;k--){words[k].classList.remove('done');gaps[k].classList.remove('done')}}
+  if(i>=0){words[i].classList.remove('done');words[i].classList.add('cur');
+    words[i].scrollIntoView({block:'nearest',behavior:'smooth'})}
+  rd.last=i;
+}
+function sync(){
+  if(!rd||!audio)return;
+  const t=audio.currentTime,ws=rd.ws;let lo=0,hi=ws.length-1,i=-1;
+  while(lo<=hi){const m=(lo+hi)>>1;if(ws[m][0]<=t){i=m;lo=m+1}else hi=m-1}
+  setCur(i);
+}
+function startSync(){if(!tm)tm=setInterval(sync,50)}
+function stopSync(){clearInterval(tm);tm=0}
+$('editbtn').onclick=()=>{if(audio){audio.pause()}closeReader()};
 
 /* ---- history */
 function fmtTime(ts){return new Date(ts*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
@@ -188,7 +242,7 @@ function addItem(e,autoplay){
   }
   async function act(a){
     if(a==='reveal')return api().reveal(e.saved);
-    if(a==='del'){if(playingId===e.id&&audio){audio.pause();audio=null}await api().delete(e.id);delete cache[e.id];el.remove();emptyCheck();return}
+    if(a==='del'){if(playingId===e.id&&audio){audio.pause();audio=null;closeReader()}await api().delete(e.id);delete cache[e.id];el.remove();emptyCheck();return}
     const r=await api().save(e.id);
     if(r.error)toast(r.error);else if(r.path){e.saved=r.path;renderActs();toast('Saved to '+r.path.split('/').slice(-2).join('/'))}
   }
@@ -196,12 +250,13 @@ function addItem(e,autoplay){
   const pb=el.querySelector('.play'),bar=el.querySelector('i');
   pb.onclick=async()=>{
     if(audio&&playingBtn===pb){audio.paused?audio.play():audio.pause();return}
-    if(audio){audio.pause();playingBtn.innerHTML=PLAY}
+    if(audio){audio.pause();playingBtn.innerHTML=PLAY;closeReader()}
     cache[e.id]=cache[e.id]||await api().get_audio(e.id);
     audio=new Audio(cache[e.id]);playingBtn=pb;playingId=e.id;
-    audio.onplay=()=>pb.innerHTML=PAUSE;audio.onpause=()=>pb.innerHTML=PLAY;
-    audio.ontimeupdate=()=>bar.style.width=(audio.currentTime/audio.duration*100)+'%';
-    audio.onended=()=>{pb.innerHTML=PLAY;bar.style.width='0';playingBtn=null;audio=null};
+    audio.onplay=()=>{pb.innerHTML=PAUSE;if(rd)startSync()};audio.onpause=()=>{pb.innerHTML=PLAY;stopSync();sync()};audio.onseeked=sync;
+    audio.ontimeupdate=()=>{bar.style.width=(audio.currentTime/audio.duration*100)+'%';sync()};
+    audio.onended=()=>{pb.innerHTML=PLAY;bar.style.width='0';playingBtn=null;audio=null;closeReader()};
+    if(e.words&&e.words.length&&e.fulltext)openReader(e);
     audio.play();
   };
   autoplay?h.prepend(el):h.append(el);

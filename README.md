@@ -27,6 +27,7 @@ The logo is an abstract sound wave: a handful of rounded bars rising and falling
 
 - 24 voices across 6 languages: American and British English, Spanish, French, Hindi, Italian and Brazilian Portuguese
 - Speed control (0.5x to 1.5x)
+- **Read-along highlight:** while the audio plays, the current word is highlighted in the text, and you can click any word to jump there. English uses Kokoro's own word timings; other languages are estimated from the sentence length.
 - Live progress bar with a **Cancel** button
 - Auto-play after generating, then **Save** to WAV, MP3, FLAC or OGG (chosen by file extension)
 - History of your last 20 generations, kept between launches

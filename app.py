@@ -85,6 +85,43 @@ class Cancelled(Exception):
     pass
 
 
+WORD = re.compile(r"\S+")
+HAS_WORD_CHAR = re.compile(r"\w")
+
+
+def align_chunk(text, cursor, res, offset, dur):
+    """Map one Kokoro result chunk to word timings in the original text.
+
+    English results carry per-token timestamps. Other languages don't, so the
+    chunk's duration is shared out across its words by length instead.
+    """
+    words = []
+    toks = [t for t in (res.tokens or []) if t.start_ts is not None and t.end_ts is not None]
+    if toks:
+        for t in toks:
+            i = text.find(t.text, cursor)
+            if i < 0:
+                continue  # token was normalised by the G2P; skip it
+            cursor = i + len(t.text)
+            if HAS_WORD_CHAR.search(t.text):
+                words.append([round(offset + t.start_ts, 3), round(offset + t.end_ts, 3), i, cursor])
+        return words, cursor
+
+    g = (res.graphemes or "").strip()
+    start = text.find(g, cursor) if g else -1
+    if start < 0:
+        start = cursor
+    end = min(len(text), start + len(g))
+    spans = [m.span() for m in WORD.finditer(text, start, end)]
+    weight = sum(b - a + 1 for a, b in spans) or 1
+    t = offset
+    for a, b in spans:
+        step = dur * (b - a + 1) / weight
+        words.append([round(t, 3), round(t + step, 3), a, b])
+        t += step
+    return words, max(end, cursor)
+
+
 class Api:
     def __init__(self):
         os.makedirs(CACHE, exist_ok=True)
@@ -170,11 +207,11 @@ class Api:
                 msg = "Loading model…" if model_cached() else "Downloading model (~330 MB, first run only)…"
                 self._js("onStatus", {"msg": msg, "pct": None})
             try:
-                chunks = self._synth(text, voice, speed, device)
+                chunks, words = self._synth(text, voice, speed, device)
             except Exception as e:
                 if isinstance(e, Cancelled) or device != "mps":
                     raise
-                chunks = self._synth(text, voice, speed, "cpu")  # GPU path failed: retry on CPU
+                chunks, words = self._synth(text, voice, speed, "cpu")  # GPU path failed: retry on CPU
             if not chunks:
                 raise RuntimeError("No audio produced")
             audio = np.concatenate(chunks)
@@ -188,6 +225,8 @@ class Api:
                 "duration": len(audio) / SAMPLE_RATE,
                 "ts": int(time.time()),
                 "saved": None,
+                "fulltext": text,
+                "words": words,
             }
             self.history.insert(0, entry)
             self._save_history()
@@ -200,20 +239,29 @@ class Api:
             self.busy = False
 
     def _synth(self, text, voice, speed, device):
+        """Returns (audio chunks, word timings). Each timing is [start_s, end_s, char_from, char_to]."""
         pipe = self._pipeline(voice[0], device)
         total = max(len(text), 1)
         done = 0
         chunks = []
+        words = []
+        cursor = 0
+        offset = 0.0
         self._js("onStatus", {"msg": "Generating…", "pct": 0})
         for res in pipe(text, voice=voice, speed=speed, split_pattern=r"\n+"):
             if self.cancel_flag.is_set():
                 raise Cancelled()
             if res.audio is None:
                 continue
-            chunks.append(res.audio.detach().cpu().numpy().astype(np.float32))
+            audio = res.audio.detach().cpu().numpy().astype(np.float32)
+            dur = len(audio) / SAMPLE_RATE
+            found, cursor = align_chunk(text, cursor, res, offset, dur)
+            words.extend(found)
+            offset += dur
+            chunks.append(audio)
             done += len(res.graphemes or "")
             self._js("onStatus", {"msg": "Generating…", "pct": min(done / total, 1.0)})
-        return chunks
+        return chunks, words
 
     def get_audio(self, id_):
         with open(self._audio_path(id_), "rb") as f:
